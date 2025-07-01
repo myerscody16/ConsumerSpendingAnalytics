@@ -1,0 +1,13 @@
+series:
+  PCEC96: "Personal Consumption Expenditures"
+  DGDSRC1A027NBEA: "Durable Goods Spending"
+  NDGSRC1A027NBEA: "Nondurable Goods Spending"
+  PCESVC96: "Services Spending" 
+  RSAFS: "Retail Sales"
+  ECOMSA: "E-commerce Sales"
+  RSFSDP: "Restaurant Sales"
+  MVLOAS: "Motor Vehicle Sales"
+  CPIAUCSL: "Consumer Price Index"
+  UNRATE: "Unemployment Rate"
+  PAYEMS: "Total Nonfarm Payrolls"
+  DSPIC96: "Real Disposable Personal Income"
