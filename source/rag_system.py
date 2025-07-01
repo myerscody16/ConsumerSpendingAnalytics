@@ -5,7 +5,6 @@ import pickle
 import os
 from datetime import datetime, timedelta
 import json
-from typing import Dict, List, Any
 from dotenv import load_dotenv
 import warnings
 warnings.filterwarnings('ignore')
@@ -61,7 +60,6 @@ class EconomicRAGSystem:
         }
         
     def load_models(self, filepath='models/advanced_consumer_models.pkl'):
-        """Load advanced forecasting models and results"""
         try:
             with open(filepath, 'rb') as f:
                 self.models = pickle.load(f)
@@ -71,7 +69,6 @@ class EconomicRAGSystem:
             self.models = {}
     
     def build_knowledge_base(self):
-        """Build knowledge base from current data and forecasts"""
         print("Building economic knowledge base...")
         
         knowledge = {
@@ -87,7 +84,6 @@ class EconomicRAGSystem:
         print("Knowledge base built successfully")
         
     def _get_current_data(self):
-        """Get latest values for all series"""
         cursor = self.conn.cursor()
         
         query = """
@@ -121,7 +117,6 @@ class EconomicRAGSystem:
         return current_data
     
     def _get_forecast_summaries(self):
-        """Get forecast data from models"""
         forecasts = {}
         
         if 'ensemble_forecasts' in self.models:
@@ -141,13 +136,11 @@ class EconomicRAGSystem:
         return forecasts
     
     def _analyze_trends(self):
-        """Analyze trends in the data"""
         trends = {}
         
         for series_id in ['PAYEMS', 'UNRATE', 'CPIAUCSL', 'DSPIC96']:
             cursor = self.conn.cursor()
             
-            # Get last 12 months of data
             query = """
             SELECT DATE_KEY, RAW_VALUE
             FROM FACT_ECONOMIC_DATA
@@ -162,13 +155,11 @@ class EconomicRAGSystem:
             if len(results) >= 12:
                 values = [float(row[1]) for row in reversed(results)]
                 
-                # Calculate trend metrics
-                recent_avg = np.mean(values[-3:])  # Last 3 months
-                earlier_avg = np.mean(values[:3])  # First 3 months
+                recent_avg = np.mean(values[-3:])
+                earlier_avg = np.mean(values[:3])
                 trend_direction = "increasing" if recent_avg > earlier_avg else "decreasing"
                 trend_magnitude = abs((recent_avg - earlier_avg) / earlier_avg * 100)
                 
-                # Calculate volatility
                 volatility = np.std(values) / np.mean(values) * 100
                 
                 trends[series_id] = {
@@ -182,13 +173,11 @@ class EconomicRAGSystem:
         return trends
     
     def _get_correlation_insights(self):
-        """Extract correlation insights from models"""
         correlations = {}
         
         if 'correlations' in self.models and self.models['correlations']:
             top_corr = self.models['correlations']['top_correlations']
             
-            # Group correlations by strength
             strong_correlations = []
             moderate_correlations = []
             
@@ -213,7 +202,6 @@ class EconomicRAGSystem:
         return correlations
     
     def _get_anomaly_insights(self):
-        """Extract anomaly detection insights"""
         anomaly_insights = {}
         
         if 'anomalies' in self.models:
@@ -232,7 +220,6 @@ class EconomicRAGSystem:
         return anomaly_insights
     
     def _generate_economic_context(self):
-        """Generate economic context and interpretations"""
         context = {
             'employment_outlook': self._interpret_employment(),
             'inflation_outlook': self._interpret_inflation(),
@@ -243,7 +230,6 @@ class EconomicRAGSystem:
         return context
     
     def _interpret_employment(self):
-        """Interpret employment data"""
         employment_context = {}
         
         try:
@@ -270,7 +256,6 @@ class EconomicRAGSystem:
         return employment_context
     
     def _interpret_inflation(self):
-        """Interpret inflation trends"""
         inflation_context = {}
         
         try:
@@ -283,8 +268,7 @@ class EconomicRAGSystem:
                 current_cpi = self.knowledge_base['current_data']['CPIAUCSL']['value']
                 forecasted_cpi = cpi_forecast['next_3_months'][0]
                 
-                # Calculate implied inflation rate
-                inflation_rate = ((forecasted_cpi - current_cpi) / current_cpi) * 100 * 12  # Annualized
+                inflation_rate = ((forecasted_cpi - current_cpi) / current_cpi) * 100 * 12
                 
                 inflation_context = {
                     'current_cpi': current_cpi,
@@ -298,16 +282,13 @@ class EconomicRAGSystem:
         return inflation_context
     
     def _identify_risks(self):
-        """Identify key economic risks"""
         risks = []
         
-        # Check for anomalies
         if 'anomalies' in self.knowledge_base:
             for series_id, anomaly_data in self.knowledge_base['anomalies'].items():
                 if anomaly_data['anomaly_rate_percent'] > 15:
                     risks.append(f"High volatility detected in {self.series_metadata.get(series_id, {}).get('name', series_id)}")
         
-        # Check for concerning trends
         if 'trends' in self.knowledge_base:
             for series_id, trend_data in self.knowledge_base['trends'].items():
                 if series_id == 'UNRATE' and trend_data['direction'] == 'increasing':
@@ -318,15 +299,12 @@ class EconomicRAGSystem:
         return risks
     
     def _generate_business_implications(self):
-        """Generate business implications"""
         implications = []
         
-        # Employment implications
         emp_context = self.knowledge_base.get('economic_context', {}).get('employment_outlook', {})
         if emp_context.get('outlook') == 'declining':
             implications.append("Potential reduction in consumer spending power due to employment decline")
         
-        # Inflation implications
         inf_context = self.knowledge_base.get('economic_context', {}).get('inflation_outlook', {})
         if inf_context.get('outlook') == 'deflationary':
             implications.append("Deflationary environment may impact pricing strategies")
@@ -335,11 +313,9 @@ class EconomicRAGSystem:
         
         return implications
     
-    def query(self, question: str) -> Dict[str, Any]:
-        """Process natural language queries about economic data"""
+    def query(self, question):
         question_lower = question.lower()
         
-        # Simple keyword-based routing (can be enhanced with NLP)
         if any(word in question_lower for word in ['employment', 'jobs', 'payroll', 'unemployment']):
             return self._answer_employment_question(question)
         elif any(word in question_lower for word in ['inflation', 'cpi', 'price', 'cost']):
@@ -356,7 +332,6 @@ class EconomicRAGSystem:
             return self._answer_general_question(question)
     
     def _answer_employment_question(self, question):
-        """Answer employment-related questions"""
         current_jobs = self.knowledge_base['current_data']['PAYEMS']['value']
         emp_outlook = self.knowledge_base['economic_context']['employment_outlook']
         
@@ -375,7 +350,6 @@ class EconomicRAGSystem:
         return response
     
     def _answer_inflation_question(self, question):
-        """Answer inflation-related questions"""
         current_cpi = self.knowledge_base['current_data']['CPIAUCSL']['value']
         inf_outlook = self.knowledge_base['economic_context']['inflation_outlook']
         
@@ -394,7 +368,6 @@ class EconomicRAGSystem:
         return response
     
     def _answer_forecast_question(self, question):
-        """Answer forecast-related questions"""
         forecasts = self.knowledge_base['forecasts']
         
         forecast_summary = []
@@ -413,7 +386,6 @@ class EconomicRAGSystem:
         return response
     
     def _answer_correlation_question(self, question):
-        """Answer correlation-related questions"""
         correlations = self.knowledge_base['correlations']
         
         strong_corr_text = []
@@ -430,7 +402,6 @@ class EconomicRAGSystem:
         return response
     
     def _answer_anomaly_question(self, question):
-        """Answer anomaly-related questions"""
         anomalies = self.knowledge_base['anomalies']
         
         anomaly_summary = []
@@ -449,7 +420,6 @@ class EconomicRAGSystem:
         return response
     
     def _answer_trend_question(self, question):
-        """Answer trend-related questions"""
         trends = self.knowledge_base['trends']
         
         trend_summary = []
@@ -469,7 +439,6 @@ class EconomicRAGSystem:
         return response
     
     def _answer_general_question(self, question):
-        """Answer general questions"""
         response = {
             'question': question,
             'answer': "I can help you analyze employment, inflation, forecasts, correlations, anomalies, and trends in economic data. " +
@@ -489,7 +458,6 @@ class EconomicRAGSystem:
 def run_rag_demo():
     load_dotenv()
     
-    # Connect to Snowflake
     mfa_token = input("Enter your MFA code: ")
     conn = snowflake.connector.connect(
         user=os.getenv('SNOWFLAKE_USER'),
@@ -501,7 +469,6 @@ def run_rag_demo():
         schema='ANALYTICS'
     )
     
-    # Initialize RAG system
     rag = EconomicRAGSystem(conn)
     rag.load_models()
     rag.build_knowledge_base()
